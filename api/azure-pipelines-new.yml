@@ -1,0 +1,38 @@
+trigger:
+  - master
+
+pool:
+  vmImage: "ubuntu-latest"
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "14.x"
+    displayName: "Install Node.js"
+
+  - script: |
+      npm cache clean --force
+      cd api
+      npm install
+      npm test
+    displayName: "npm install and build"
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: "JUnit"
+      testResultsFiles: '**/TEST-*.xml'
+
+  - task: Docker@2
+    inputs:
+      containerRegistry: 'Docker Hub'
+      repository: 'gurpreets1/hirematebackend'
+      command: 'buildAndPush'
+      tags: '$(Build.BuildId)'
+      Dockerfile: '**/Dockerfile'
+    displayName: "Building and Pushing Docker Image"
+  
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      artifact: 'hiremate_Artifact'
+      publishLocation: 'pipeline'
+    displayName: 'Publish Docker Image Artifact'
